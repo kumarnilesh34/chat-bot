@@ -24,21 +24,21 @@ function extractSymptoms(userInput) {
 app.post('/api/chat', (req, res) => {
     const { message, currentSymptoms } = req.body;
     let newSymptoms = [...(currentSymptoms || [])];
-    
+
     // Extract symptoms from user input
     const extracted = extractSymptoms(message);
     let newlyFound = [];
-    
+    y
     for (const sym of extracted) {
         if (!newSymptoms.includes(sym)) {
             newSymptoms.push(sym);
             newlyFound.push(sym.replace(/_/g, ' '));
         }
     }
-    
+
     let botReply = '';
     let prediction = null;
-    
+
     if (message.toLowerCase().includes('predict')) {
         if (newSymptoms.length === 0) {
             botReply = "You haven't provided any symptoms yet. Please describe what you're feeling before asking for a prediction.";
@@ -52,7 +52,7 @@ app.post('/api/chat', (req, res) => {
     } else {
         botReply = "I'm not sure if I caught any specific symptoms from that. Could you describe your symptoms more clearly? (e.g., 'I have a headache and skin rash') Or type 'predict' if you're done.";
     }
-    
+
     res.json({
         reply: botReply,
         symptoms: newSymptoms,
@@ -65,7 +65,7 @@ app.get('/api/all-symptoms', (req, res) => {
     res.json(cleanSymptoms);
 });
 
-const PORT = 3000;
+const PORT = process.env.PORT || 80;
 classifier.train('training_data.csv').then(() => {
     app.listen(PORT, () => {
         console.log(`Chatbot server running at http://localhost:${PORT}`);

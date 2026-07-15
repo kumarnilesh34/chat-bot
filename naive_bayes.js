@@ -11,14 +11,45 @@ class DiseaseClassifier {
 
     async train(filepath) {
         return new Promise((resolve, reject) => {
+            let isOldFormat = false;
+
             fs.createReadStream(filepath)
                 .pipe(csv())
                 .on('headers', (headers) => {
-                    // Extract symptoms (all columns except the last one 'prognosis' and potentially an empty trailing column)
-                    this.symptoms = headers.filter(h => h !== 'prognosis' && h.trim() !== '');
+                    if (headers.includes('prognosis')) {
+                        isOldFormat = true;
+                        this.symptoms = headers.filter(h => h !== 'prognosis' && h.trim() !== '');
+                    }
                 })
                 .on('data', (row) => {
-                    const disease = row['prognosis'];
+                    let disease;
+                    let rowSymptoms = [];
+
+                    if (isOldFormat) {
+                        disease = row['prognosis'];
+                        if (disease) disease = disease.trim();
+                        
+                        for (const sym of this.symptoms) {
+                            if (row[sym] === '1') {
+                                rowSymptoms.push(sym);
+                            }
+                        }
+                    } else if (row['Disease']) {
+                        disease = row['Disease'];
+                        if (disease) disease = disease.trim();
+
+                        for (let i = 1; i <= 17; i++) {
+                            const symCol = `Symptom_${i}`;
+                            if (row[symCol] && row[symCol].trim() !== '') {
+                                const cleanSym = row[symCol].trim();
+                                rowSymptoms.push(cleanSym);
+                                if (!this.symptoms.includes(cleanSym)) {
+                                    this.symptoms.push(cleanSym);
+                                }
+                            }
+                        }
+                    }
+
                     if (!disease) return;
 
                     this.totalSamples++;
@@ -26,19 +57,14 @@ class DiseaseClassifier {
 
                     if (!this.symptomCounts[disease]) {
                         this.symptomCounts[disease] = {};
-                        for (const sym of this.symptoms) {
-                            this.symptomCounts[disease][sym] = 0;
-                        }
                     }
 
-                    for (const sym of this.symptoms) {
-                        if (row[sym] === '1') {
-                            this.symptomCounts[disease][sym]++;
-                        }
+                    for (const sym of rowSymptoms) {
+                        this.symptomCounts[disease][sym] = (this.symptomCounts[disease][sym] || 0) + 1;
                     }
                 })
                 .on('end', () => {
-                    console.log(`Training complete. Total samples: ${this.totalSamples}, Diseases: ${Object.keys(this.diseaseCounts).length}`);
+                    console.log(`Training complete. Total samples: ${this.totalSamples}, Diseases: ${Object.keys(this.diseaseCounts).length}, Unique Symptoms: ${this.symptoms.length}`);
                     resolve();
                 })
                 .on('error', reject);
@@ -57,7 +83,7 @@ class DiseaseClassifier {
             let logProb = Math.log(prob_y);
             
             for (const sym of this.symptoms) {
-                const count_x_y = this.symptomCounts[disease][sym] + eps;
+                const count_x_y = (this.symptomCounts[disease][sym] || 0) + eps;
                 const total_y = this.diseaseCounts[disease] + (eps * 2);
                 const prob_x_y = count_x_y / total_y;
                 
