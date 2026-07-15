@@ -28,7 +28,7 @@ app.post('/api/chat', (req, res) => {
     // Extract symptoms from user input
     const extracted = extractSymptoms(message);
     let newlyFound = [];
-    y
+
     for (const sym of extracted) {
         if (!newSymptoms.includes(sym)) {
             newSymptoms.push(sym);
