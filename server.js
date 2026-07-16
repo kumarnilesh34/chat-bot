@@ -8,13 +8,18 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 const classifier = new DiseaseClassifier();
 
-// Setup Natural Language Matching
 function extractSymptoms(userInput) {
     const text = userInput.toLowerCase();
     const matched = [];
     for (const sym of classifier.symptoms) {
+        // Escape special characters and create a whole-word regex
         const symClean = sym.replace(/_/g, ' ').trim();
-        if (text.includes(symClean)) {
+        if (!symClean) continue;
+        
+        const escapedSym = symClean.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const regex = new RegExp(`\\b${escapedSym}\\b`, 'i');
+        
+        if (regex.test(text)) {
             matched.push(sym);
         }
     }
