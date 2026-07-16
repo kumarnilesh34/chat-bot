@@ -89,8 +89,6 @@ class DiseaseClassifier {
                 
                 if (userSymptoms.includes(sym)) {
                     logProb += Math.log(prob_x_y);
-                } else {
-                    logProb += Math.log(1 - prob_x_y);
                 }
             }
             
